@@ -430,14 +430,20 @@ static void add_file(struct vlc_source *c, struct darray *array,
 	if (new_media) {
 		if (is_url) {
 			struct dstr network_caching_option = {0};
-			dstr_catf(&network_caching_option,
-					":network-caching=%d", network_caching);
-			libvlc_media_add_option_(new_media,
-					network_caching_option.array);
+			dstr_catf(&network_caching_option, ":network-caching=%d", network_caching);
+			libvlc_media_add_option_(new_media, network_caching_option.array);
+			blog(LOG_WARNING, "Sending options: %s", network_caching_option.array);
 			dstr_free(&network_caching_option);
+
+			struct dstr network_caching_option2 = {0};
+			dstr_catf(&network_caching_option2, ":rtsp-tcp");
+			libvlc_media_add_option_(new_media, network_caching_option2.array);
+			blog(LOG_WARNING, "Sending options: %s", network_caching_option2.array);
+			dstr_free(&network_caching_option2);
 		}
 
 		data.path = new_path.array;
+		blog(LOG_WARNING, "Data path: %s", new_path.array);
 		data.media = new_media;
 		da_push_back(new_files, &data);
 	} else {
