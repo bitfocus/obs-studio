@@ -39,12 +39,24 @@ else()
 	set(MIXER_ENABLED TRUE)
 endif()
 
+if(NOT DEFINED RESTREAM_CLIENTID OR "${RESTREAM_CLIENTID}" STREQUAL "" OR
+   NOT DEFINED RESTREAM_HASH     OR "${RESTREAM_HASH}"     STREQUAL "" OR
+   NOT BROWSER_AVAILABLE_INTERNAL)
+	set(RESTREAM_ENABLED FALSE)
+	set(RESTREAM_CLIENTID "")
+	set(RESTREAM_HASH "0")
+else()
+	set(RESTREAM_ENABLED TRUE)
+endif()
+
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/ui-config.h.in"
 	"${CMAKE_CURRENT_BINARY_DIR}/ui-config.h")
 
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 set(CMAKE_AUTOMOC TRUE)
+
+find_package(Qt5Svg ${FIND_MODE})
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
 
@@ -85,7 +97,7 @@ if(WIN32)
 		win-update/update-window.cpp
 		win-update/win-update.cpp
 		win-update/win-update-helpers.cpp
-		obs.rc)
+		${obs-studio_BINARY_DIR}/obs.rc)
 	set(obs_PLATFORM_HEADERS
 		win-update/update-window.hpp
 		win-update/win-update.hpp
@@ -157,6 +169,15 @@ if(BROWSER_AVAILABLE_INTERNAL)
 			auth-mixer.hpp
 			)
 	endif()
+
+	if(RESTREAM_ENABLED)
+		list(APPEND obs_PLATFORM_SOURCES
+			auth-restream.cpp
+			)
+		list(APPEND obs_PLATFORM_HEADERS
+			auth-restream.hpp
+			)
+	endif()
 endif()
 
 set(obs_libffutil_SOURCES
@@ -211,6 +232,9 @@ set(obs_SOURCES
 	focus-list.cpp
 	menu-button.cpp
 	double-slider.cpp
+	slider-ignorewheel.cpp
+	comboBox-ignorewheel.cpp
+	spinBox-ignorewheel.cpp
 	volume-control.cpp
 	adv-audio-control.cpp
 	item-widget-helpers.cpp
@@ -220,7 +244,6 @@ set(obs_SOURCES
 	vertical-scroll-area.cpp
 	visibility-item-widget.cpp
 	slider-absoluteset-style.cpp
-	source-list-widget.cpp
 	qt-display.cpp
 	crash-report.cpp
 	hotkey-edit.cpp
@@ -262,6 +285,9 @@ set(obs_HEADERS
 	display-helpers.hpp
 	balance-slider.hpp
 	double-slider.hpp
+	slider-ignorewheel.hpp
+	comboBox-ignorewheel.hpp
+	spinBox-ignorewheel.hpp
 	focus-list.hpp
 	menu-button.hpp
 	mute-checkbox.hpp
@@ -275,7 +301,6 @@ set(obs_HEADERS
 	vertical-scroll-area.hpp
 	visibility-item-widget.hpp
 	slider-absoluteset-style.hpp
-	source-list-widget.hpp
 	qt-display.hpp
 	crash-report.hpp
 	hotkey-edit.hpp
@@ -330,6 +355,7 @@ endif()
 target_link_libraries(obs
 	libobs
 	Qt5::Widgets
+	Qt5::Svg
 	obs-frontend-api
 	${FFMPEG_LIBRARIES}
 	${LIBCURL_LIBRARIES}
@@ -356,9 +382,7 @@ install_obs_data(obs data obs-studio)
 install_obs_data_file(obs ../AUTHORS obs-studio/authors)
 
 if (UNIX AND UNIX_STRUCTURE AND NOT APPLE)
-	install(FILES dist/obs.desktop DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/applications)
-	install(FILES forms/images/obs.png
-		DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/256x256/apps)
+	add_subdirectory(xdg-data)
 endif()
 
 add_subdirectory(frontend-plugins)
